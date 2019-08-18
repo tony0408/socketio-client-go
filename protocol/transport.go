@@ -58,16 +58,16 @@ func (conn *webSocketConn) Write(packet *Packet) error {
 	return nil
 }
 
-type webSocketTransport struct {
+type WebSocketTransport struct {
+	Dialer websocket.Dialer
 }
 
 func NewWebSocketTransport() Transport {
-	return &webSocketTransport{}
+	return &WebSocketTransport{}
 }
 
-func (t *webSocketTransport) Dial(url string, requestHeader http.Header) (Conn, error) {
-	dialer := &websocket.Dialer{}
-	conn, _, err := dialer.Dial(url, requestHeader)
+func (t *WebSocketTransport) Dial(url string, requestHeader http.Header) (Conn, error) {
+	conn, _, err := t.Dialer.Dial(url, requestHeader)
 	if err != nil {
 		return nil, err
 	}

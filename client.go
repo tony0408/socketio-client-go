@@ -38,7 +38,7 @@ type SocketClient struct {
 	closeChan chan bool
 }
 
-func Socket(urlstring string) (*SocketClient, error) {
+func Socket(urlstring string, transport protocol.Transport) (*SocketClient, error) {
 	u, err := url.Parse(urlstring)
 	if err != nil {
 		return nil, err
@@ -48,6 +48,11 @@ func Socket(urlstring string) (*SocketClient, error) {
 	q.Add("EIO", "3")
 	q.Add("transport", "websocket")
 	u.RawQuery = q.Encode()
+
+	if transport == nil {
+		transport = &protocol.WebSocketTransport{}
+	}
+
 	return &SocketClient{
 		emitter:   emitter{listeners: make(map[string][]Listener)},
 		url:       u,
