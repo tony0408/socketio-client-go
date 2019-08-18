@@ -28,7 +28,7 @@ var defaultOption = &option{
 	MaxReconnections: math.MaxInt32,
 }
 
-type socketClient struct {
+type SocketClient struct {
 	emitter
 	state     uint32
 	url       *url.URL
@@ -38,7 +38,7 @@ type socketClient struct {
 	closeChan chan bool
 }
 
-func Socket(urlstring string) (*socketClient, error) {
+func Socket(urlstring string) (*SocketClient, error) {
 	u, err := url.Parse(urlstring)
 	if err != nil {
 		return nil, err
@@ -48,7 +48,7 @@ func Socket(urlstring string) (*socketClient, error) {
 	q.Add("EIO", "3")
 	q.Add("transport", "websocket")
 	u.RawQuery = q.Encode()
-	return &socketClient{
+	return &SocketClient{
 		emitter:   emitter{listeners: make(map[string][]Listener)},
 		url:       u,
 		option:    defaultOption,
@@ -58,7 +58,7 @@ func Socket(urlstring string) (*socketClient, error) {
 	}, nil
 }
 
-func (s *socketClient) Connect(requestHeader http.Header) {
+func (s *SocketClient) Connect(requestHeader http.Header) {
 	if atomic.CompareAndSwapUint32(&s.state, stateOpen, stateConnecting) {
 		conn, err := s.transprot.Dial(s.url.String(), requestHeader)
 		if err != nil {
@@ -75,13 +75,13 @@ func (s *socketClient) Connect(requestHeader http.Header) {
 	}
 }
 
-func (s *socketClient) Disconnect() {
+func (s *SocketClient) Disconnect() {
 	atomic.StoreUint32(&s.state, stateClose)
 	close(s.outChan)
 	close(s.closeChan)
 }
 
-func (s *socketClient) Emit(event string, args ...interface{}) {
+func (s *SocketClient) Emit(event string, args ...interface{}) {
 	if atomic.LoadUint32(&s.state) == stateReady && !s.emit(event, args) {
 		m := &protocol.Message{
 			Type:      protocol.MessageTypeEvent,
@@ -99,7 +99,7 @@ func (s *socketClient) Emit(event string, args ...interface{}) {
 	}
 }
 
-func (s *socketClient) reconnect(state uint32, requestHeader http.Header) {
+func (s *SocketClient) reconnect(state uint32, requestHeader http.Header) {
 	time.Sleep(time.Second)
 	if atomic.CompareAndSwapUint32(&s.state, state, stateReconnecting) {
 		conn, err := s.transprot.Dial(s.url.String(), requestHeader)
@@ -117,7 +117,7 @@ func (s *socketClient) reconnect(state uint32, requestHeader http.Header) {
 	}
 }
 
-func (s *socketClient) start(conn protocol.Conn, requestHeader http.Header) {
+func (s *SocketClient) start(conn protocol.Conn, requestHeader http.Header) {
 	stopper := make(chan bool)
 	go s.startRead(conn, stopper)
 	go s.startWrite(conn, stopper)
@@ -130,7 +130,7 @@ func (s *socketClient) start(conn protocol.Conn, requestHeader http.Header) {
 	}
 }
 
-func (s *socketClient) startRead(conn protocol.Conn, stopper chan bool) {
+func (s *SocketClient) startRead(conn protocol.Conn, stopper chan bool) {
 	defer func() {
 		recover()
 	}()
@@ -162,7 +162,7 @@ func (s *socketClient) startRead(conn protocol.Conn, stopper chan bool) {
 	}
 }
 
-func (s *socketClient) startWrite(conn protocol.Conn, stopper chan bool) {
+func (s *SocketClient) startWrite(conn protocol.Conn, stopper chan bool) {
 	defer func() {
 		recover()
 	}()
@@ -185,7 +185,7 @@ func (s *socketClient) startWrite(conn protocol.Conn, stopper chan bool) {
 	}
 }
 
-func (s *socketClient) startPing(h *protocol.Handshake, stopper chan bool) {
+func (s *SocketClient) startPing(h *protocol.Handshake, stopper chan bool) {
 	defer func() {
 		recover()
 	}()
