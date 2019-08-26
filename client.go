@@ -7,7 +7,7 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/NzKSO/socketio-client-go/protocol"
+	"github.com/tony0408/socketio-client-go/protocol"
 )
 
 const (
